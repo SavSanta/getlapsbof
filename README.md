@@ -19,4 +19,8 @@ Example: `getlapsbof sandstone.camp DC=sandstone,DC=camp CN=edworkbox1,OU=LAPSMa
 - Expiration date is not currently retrievable using the publicized methods. The account Password Last Set Date is retrievable.
 The operator must manually calculate the actual expiration date by adding the LAPS Policy for change to the Password Last Set Date.
 
-
+## Credits
+- xpn (Adam Chester)
+- DSInternals
+- Impacket
+- MSDN
