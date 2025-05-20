@@ -1,6 +1,6 @@
 # getlapsbof
 
-Beacon Object File (BOF) to retrieve and decrypt LAPS (version 2) passwords.
+Beacon Object File (BOF) to retrieve and decrypt LAPSv2 passwords.
 
 # Usage:
 Syntax: `getlapsbof <TARGET_DC> <BASE_DN> <TARGET_COMPUTER_DN>`
