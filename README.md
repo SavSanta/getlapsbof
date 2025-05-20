@@ -21,6 +21,6 @@ The operator must manually calculate the actual expiration date by adding the LA
 
 ## Credits
 - xpn (Adam Chester)
-- DSInternals
-- Impacket
-- MSDN
+- DSInternals (Micheal Grafnetter)
+- Impacket (Fortra/HelpSystems)
+- MSDN 
