@@ -34,7 +34,7 @@ alias getlapsbof {
     
     $barch  = barch($1);
     
-    $handle = openf(script_resource("bin/bof. $+ $barch $+ .o"));
+    $handle = openf(script_resource("dist/bof. $+ $barch $+ .o"));
     $data   = readb($handle, -1);
     closef($handle);
     
