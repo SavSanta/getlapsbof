@@ -1,4 +1,4 @@
-# getlapsbof (v1.1)
+# getlapsbof
 
 Beacon Object File (BOF) to retrieve and decrypt LAPSv2 passwords.
 
