@@ -1,4 +1,4 @@
-# getlapsbof 1.1
+# getlapsbof (v1.1)
 
 Beacon Object File (BOF) to retrieve and decrypt LAPSv2 passwords.
 
@@ -19,4 +19,4 @@ Example: `getlapsbof sandstone.camp DC=sandstone,DC=camp CN=edworkbox1,OU=LAPSMa
 - xpn (Adam Chester)
 - DSInternals (Michael Grafnetter)
 - Impacket (Fortra/HelpSystems)
-- MSDN 
+- MSDN
