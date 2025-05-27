@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <wchar.h>
+#include <malloc.h>
+#include <stdlib.h>
 #include <Windows.h>
 #include <ncrypt.h>
 #include <ncryptprotect.h>
@@ -7,7 +9,7 @@
 #include <Winldap.h>
 #include "base\helpers.h"
 
-#define PROGVERS "1.1"
+#define PROGVERS "1.2"
 #ifdef _DEBUG
 #include "base\mock.h"
 #undef DECLSPEC_IMPORT
@@ -145,7 +147,7 @@ extern "C" {
 
     PCHAR ConvertADTimestampToHumanTime(PUCHAR vRawTimestamp, INT intRawLen) {
 
-        static CHAR buf[64];
+        CHAR* buf;
         FILETIME ft;
         SYSTEMTIME stUTC;
         ULONGLONG ullTime;
@@ -153,12 +155,14 @@ extern "C" {
         DFR_LOCAL(KERNEL32, FileTimeToSystemTime);
         DFR_LOCAL(MSVCRT, sprintf);
         DFR_LOCAL(MSVCRT, _strtoi64);
+        DFR_LOCAL(MSVCRT, malloc);
 
+        buf = (CHAR*)malloc(64 * sizeof(CHAR));
         // Expect timestamp from AD should be 18 characters. If not something wrong, spec changed, or possibly it's in a different metric unit. Bail.
         if (intRawLen != 18) {
             BeaconPrintf(CALLBACK_ERROR, "WARNING: ADTime doesnt appear to be valid. HumanTime may be erroneous. Returning Error.\n.");
             sprintf(buf, "HUMANTIME_CONVERSION_FAIL");
-            return buf;
+            return (PCHAR)buf;
         }
 
         // Have to conditional stoll for mingw plebs
@@ -174,40 +178,42 @@ extern "C" {
         if (!FileTimeToSystemTime(&ft, &stUTC)) {
             //BeaconPrintf(CALLBACK_ERROR, "Error: FileTimeToSystemTime conversion failed.");
             sprintf(buf, "HUMANTIME_CONVERSION_FAIL");
-            return buf;
+            return (PCHAR)buf;
         }
 
         // Unsure if this accounts for DSTs or LeapSecs
         if (FileTimeToSystemTime(&ft, &stUTC)) {
             sprintf(buf, "%s/%02d/%04d %02d:%02d:%02d UTC", GetMonthAbbrev(stUTC.wMonth), stUTC.wDay, stUTC.wYear, stUTC.wHour, stUTC.wMinute, stUTC.wSecond);
-            return buf;
+            return (PCHAR)buf;
         }
         else {
             sprintf(buf, "HUMANTIME_CONVERSION_FAIL");
-            return buf;
+            return (PCHAR)buf;
         }
     
     }
 
     char* ConvertWinFileTimeToHumanTime(unsigned int dwLowDateTime, unsigned int dwHighDateTime) {
 
-        static CHAR buf[64];
+        CHAR* buf;
         FILETIME ft;
         SYSTEMTIME stUTC;
         DFR_LOCAL(KERNEL32, FileTimeToSystemTime);
         DFR_LOCAL(MSVCRT, sprintf);
+        DFR_LOCAL(MSVCRT, malloc);
 
         ft.dwLowDateTime = dwLowDateTime;
         ft.dwHighDateTime =  dwHighDateTime;
+        buf = (CHAR*)malloc(64 * sizeof(CHAR));
 
         // Unsure if this accounts for DSTs or LeapSecs
         if (FileTimeToSystemTime(&ft, &stUTC)) {
             sprintf(buf, "%s/%02d/%04d %02d:%02d:%02d UTC", GetMonthAbbrev(stUTC.wMonth), stUTC.wDay, stUTC.wYear, stUTC.wHour, stUTC.wMinute, stUTC.wSecond);
-            return buf;
+            return (CHAR*)buf;
         }
         else {
             sprintf(buf, "HUMANTIME_CONVERSION_FAIL");
-            return buf;
+            return (CHAR*)buf;
         }
 
     }
@@ -251,16 +257,19 @@ extern "C" {
         WCHAR sidString[256];
         WCHAR name[256];
         WCHAR domain[256];
-        static WCHAR ntacct[256];
         SID_NAME_USE sidType;
+        WCHAR* ntacct;
         DWORD nameSize = sizeof(name);
         DWORD domainSize = sizeof(domain);
 
         DFR_LOCAL(KERNEL32, LocalFree);
+        DFR_LOCAL(MSVCRT, malloc);
         DFR_LOCAL(MSVCRT, _swprintf);
         DFR_LOCAL(KERNEL32, GetLastError);
         DFR_LOCAL(ADVAPI32, ConvertStringSidToSidW);
         DFR_LOCAL(ADVAPI32, LookupAccountSidW);
+        
+        
 
         // We are presuming the SID is a single SID. This may fail on multiple accounts allowed to decrypt returned as a list?
 
@@ -278,11 +287,12 @@ extern "C" {
             //return ;
         }
 
-        _swprintf(ntacct, L" %ls\\%ls\n", domain, name);
+        ntacct = (WCHAR*)malloc(256 * sizeof(WCHAR));
+        _swprintf((WCHAR*) ntacct, L" %ls\\%ls\n", domain, name);
         // Clean up
         LocalFree(pSid);
 
-        return ntacct;
+        return (WCHAR*)ntacct;
 
     }
 
