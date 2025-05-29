@@ -16,7 +16,7 @@ Example: `getlapsbof sandstone.camp DC=sandstone,DC=camp CN=edworkbox1,OU=LAPSMa
 - LAPSv1 (aka Legacy LAPS) not currently supported. LAPSv1 password is already NOT encrypted. 
 
 ## Screenshots
-<TBA>
+![Image01](scrn/image01.jpg)
 
 ## Credits
 - jborean93 (DPAPI-NG)
