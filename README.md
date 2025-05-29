@@ -19,6 +19,7 @@ Example: `getlapsbof sandstone.camp DC=sandstone,DC=camp CN=edworkbox1,OU=LAPSMa
 <TBA>
 
 ## Credits
+- jborean93 (DPAPI-NG)
 - xpn (Adam Chester)
 - DSInternals (Michael Grafnetter)
 - Impacket (Fortra/HelpSystems)
