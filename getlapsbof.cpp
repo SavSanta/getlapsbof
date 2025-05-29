@@ -136,7 +136,7 @@ extern "C" {
     }
 
     const char* GetMonthAbbrev(int month) {
-        static const char* mon[] = {
+        const char* mon[] = {
             "Jan", "Feb", "Mar", "Apr", "May", "Jun",
             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
         };
