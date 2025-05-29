@@ -9,7 +9,7 @@
 #include <Winldap.h>
 #include "base\helpers.h"
 
-#define PROGVERS "1.2"
+#define PROGVERS "1.3"
 #ifdef _DEBUG
 #include "base\mock.h"
 #undef DECLSPEC_IMPORT
@@ -269,8 +269,6 @@ extern "C" {
         DFR_LOCAL(ADVAPI32, ConvertStringSidToSidW);
         DFR_LOCAL(ADVAPI32, LookupAccountSidW);
         
-        
-
         // We are presuming the SID is a single SID. This may fail on multiple accounts allowed to decrypt returned as a list?
 
 
