@@ -1,10 +1,10 @@
 # getlapsbof
-# version: 1.3
+# version: 1.3.1
 # Author: @SavSanta 
 # Original Credit: @xpn
 # Decrypt LAPSv2 Credentials
 
-beacon_command_register("getlapsbof", "getlapsbof version 1.2 - Decrypts LAPSv2 Credentials", "getlapsbof \c4<TARGET_DC>\o \c2<BASE_DN>\o \c7<TARGET_COMPUTER_DN>\o
+beacon_command_register("getlapsbof", "getlapsbof version 1.3.1 - Decrypts LAPSv2 Credentials", "getlapsbof \c4<TARGET_DC>\o \c2<BASE_DN>\o \c7<TARGET_COMPUTER_DN>\o
 
 Retrieve and Decrypt the the LAPSv2 password from the Windows Active Directory Domain Controller.
 
