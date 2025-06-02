@@ -9,7 +9,7 @@
 #include <Winldap.h>
 #include "base\helpers.h"
 
-#define PROGVERS "1.3"
+#define PROGVERS "1.3.1"
 #ifdef _DEBUG
 #include "base\mock.h"
 #undef DECLSPEC_IMPORT
@@ -404,8 +404,7 @@ extern "C" {
         }
 
         header = (struct blob_header*)output;
-        BeaconPrintf(CALLBACK_OUTPUT, "=== LAPSv2 Account Information ===:\nUpper Date Timestamp: %d\nLower Date Timestamp: %d\nPassword Expiry Date: %s \nPassword Last Update: %s\nEncrypted Buffer Size: %d\nFlags: %d\n", header->upperdate, header->lowerdate, ConvertWinFileTimeToHumanTime(header->lowerdate, header->upperdate), ConvertADTimestampToHumanTime(output2, length2), header->encryptedBufferSize, header->flags);
-
+        BeaconPrintf(CALLBACK_OUTPUT, "=== LAPSv2 Account Information ===:\nUpper Date Timestamp: %d\nLower Date Timestamp: %d\nPassword Expiry Date: %s \nPassword Last Update: %s\nEncrypted Buffer Size: %d\nFlags: %d\n", header->upperdate, header->lowerdate, ConvertADTimestampToHumanTime(output2, length2), ConvertWinFileTimeToHumanTime(header->lowerdate, header->upperdate), header->encryptedBufferSize, header->flags);
         if (header->encryptedBufferSize != length - sizeof(struct blob_header)) {
             BeaconPrintf(CALLBACK_ERROR, "Header Length (%d) and LDAP Returned Length (%d) Don't Match.. decryption may fail", header->encryptedBufferSize, length-sizeof(blob_header));
         }
