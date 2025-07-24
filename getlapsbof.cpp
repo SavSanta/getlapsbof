@@ -443,84 +443,83 @@ extern "C" {
         BeaconPrintf(CALLBACK_OUTPUT, "[DEBUGTEST] Crafted Graph Endpoint URL: %ls", craftedurl);
         #endif
 
-        //Might want to check that user agent
-if (!respBuff) {
-    BeaconPrintf(CALLBACK_ERROR, "Memory Allocation Failed for OutBuffer.\n");
-    return;
-}
+        if (!respBuff) {
+            BeaconPrintf(CALLBACK_ERROR, "Memory Allocation Failed for OutBuffer.\n");
+            return;
+        }
 
-// Open session
-HINTERNET hSession = WinHttpOpen(L"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36", 
-    WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, 
-    NULL, 
-    WINHTTP_NO_PROXY_BYPASS, 
-    0);
+        // Open session
+        HINTERNET hSession = WinHttpOpen(L"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36", 
+            WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, 
+            NULL, 
+            WINHTTP_NO_PROXY_BYPASS, 
+            0);
 
-if (!hSession) {
-    BeaconPrintf(CALLBACK_ERROR, "WinHttpOpen failed: %u\n", GetLastError());
-    //BeaconPrintf(CALLBACK_ERROR, "WinHttpOpen failed.\n");
-    return;
-}
+        if (!hSession) {
+            BeaconPrintf(CALLBACK_ERROR, "WinHttpOpen failed: %u\n", GetLastError());
+            //BeaconPrintf(CALLBACK_ERROR, "WinHttpOpen failed.\n");
+            return;
+        }
 
-// Connect
-HINTERNET hConnect = WinHttpConnect(hSession, L"graph.microsoft.com", INTERNET_DEFAULT_HTTPS_PORT, 0);
-if (!hConnect) {
-    BeaconPrintf(CALLBACK_ERROR, "WinHttpConnect failed: %u\n", GetLastError());
-    //BeaconPrintf(CALLBACK_ERROR, "WinHttpConnect failed.");
-    WinHttpCloseHandle(hSession);
-    return;
-}
+        // Connect
+        HINTERNET hConnect = WinHttpConnect(hSession, L"graph.microsoft.com", INTERNET_DEFAULT_HTTPS_PORT, 0);
+        if (!hConnect) {
+            BeaconPrintf(CALLBACK_ERROR, "WinHttpConnect failed: %u\n", GetLastError());
+            //BeaconPrintf(CALLBACK_ERROR, "WinHttpConnect failed.");
+            WinHttpCloseHandle(hSession);
+            return;
+        }
 
-// WinHTTP To Send Request
-HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"GET", craftedurl, 
-    NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE);
-if (!hRequest) {
+        // WinHTTP To Send Request
+        HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"GET", craftedurl, 
+            NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE);
+        if (!hRequest) {
 
-    BeaconPrintf(CALLBACK_ERROR, "WinHttpOpenRequest failed: %u\n", GetLastError());
-    //BeaconPrintf(CALLBACK_ERROR, "WinHttpOpenRequest failed.");
-    WinHttpCloseHandle(hConnect);
-    WinHttpCloseHandle(hSession);
-    return;
-}
+            BeaconPrintf(CALLBACK_ERROR, "WinHttpOpenRequest failed: %u\n", GetLastError());
+            //BeaconPrintf(CALLBACK_ERROR, "WinHttpOpenRequest failed.");
+            WinHttpCloseHandle(hConnect);
+            WinHttpCloseHandle(hSession);
+            return;
+        }
 
-// Add headers
-WinHttpAddRequestHeaders(hRequest, L"x-client-SKU: MSAL.CoreCLR\r\nocp-client-version: 10.0.26100\r\nocp-client-name: Windows\r\n", 
-    -1L, WINHTTP_ADDREQ_FLAG_ADD);
-WinHttpAddRequestHeaders(hRequest, authhdr, -1L, WINHTTP_ADDREQ_FLAG_ADD);
+        // Add headers
+        WinHttpAddRequestHeaders(hRequest, L"x-client-SKU: MSAL.CoreCLR\r\nocp-client-version: 10.0.26100\r\nocp-client-name: Windows\r\n", 
+            -1L, WINHTTP_ADDREQ_FLAG_ADD);
+        WinHttpAddRequestHeaders(hRequest, authhdr, -1L, WINHTTP_ADDREQ_FLAG_ADD);
 
-// Send request
-if (!WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, 
-    WINHTTP_NO_REQUEST_DATA, 0, 0, 0)) {
-    BeaconPrintf(CALLBACK_ERROR, "WinHttpSendRequest failed: %u\n", GetLastError());
-    //BeaconPrintf(CALLBACK_ERROR, "WinHttpSendRequest failed.");
-}
+        // Send request
+        if (!WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, 
+            WINHTTP_NO_REQUEST_DATA, 0, 0, 0)) {
+            BeaconPrintf(CALLBACK_ERROR, "WinHttpSendRequest failed: %u\n", GetLastError());
+            //BeaconPrintf(CALLBACK_ERROR, "WinHttpSendRequest failed.");
+        }
 
-// Receive response
-if (!WinHttpReceiveResponse(hRequest, NULL)) {
-    BeaconPrintf(CALLBACK_ERROR, "WinHttpReceiveResponse failed: %u\n", GetLastError());
-    //BeaconPrintf(CALLBACK_ERROR, "WinHttpReceiveResponse failed.");
-}
+        // Receive response
+        if (!WinHttpReceiveResponse(hRequest, NULL)) {
+            BeaconPrintf(CALLBACK_ERROR, "WinHttpReceiveResponse failed: %u\n", GetLastError());
+            //BeaconPrintf(CALLBACK_ERROR, "WinHttpReceiveResponse failed.");
+        }
 
-// Read response chunks
-BOOL bResults = TRUE;
-DWORD totalRead = 0;
-do {
-    dataRead = 0;
-    bResults = WinHttpReadData(hRequest, (LPVOID)(respBuff + totalRead), 55000 - totalRead, &dataRead);
-    totalRead += dataRead;
-} while (bResults && dataRead > 0);
+        // Read response chunks
+        BOOL bResults = TRUE;
+        DWORD totalRead = 0;
+        do {
+            dataRead = 0;
+            bResults = WinHttpReadData(hRequest, (LPVOID)(respBuff + totalRead), 55000 - totalRead, &dataRead);
+            totalRead += dataRead;
+        } while (bResults && dataRead > 0);
 
-// Output
-respBuff[totalRead] = '\0';
-BeaconPrintf(CALLBACK_OUTPUT, "MSGraph Response: %s", respBuff);
+        // Output
+        respBuff[totalRead] = '\0';
+        BeaconPrintf(CALLBACK_OUTPUT, "MSGraph Response: %s", respBuff);
 
-// Cleanup
-if (hRequest) WinHttpCloseHandle(hRequest);
-if (hConnect) WinHttpCloseHandle(hConnect);
-if (hSession) WinHttpCloseHandle(hSession);
-if (respBuff) free(respBuff);
-if (authbear) free(authbear);
-if (authhdr) free(authhdr);
+        // Cleanup
+        if (hRequest) WinHttpCloseHandle(hRequest);
+        if (hConnect) WinHttpCloseHandle(hConnect);
+        if (hSession) WinHttpCloseHandle(hSession);
+        if (respBuff) free(respBuff);
+        if (authbear) free(authbear);
+        if (authhdr) free(authhdr);
 
 
 
