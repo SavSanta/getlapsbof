@@ -103,10 +103,7 @@ extern "C" {
             
         if (ldap_search_s(ldapHandle, distinguishedName, LDAP_SCOPE_SUBTREE, searchFilter, attr, 0, &searchResult) != LDAP_SUCCESS) {
             
-            if (searchResult != NULL)
-                ldap_msgfree(searchResult);
-                
-                return false;
+            if (searchResult != NULL) ldap_msgfree(searchResult);
 
             BeaconPrintf(CALLBACK_ERROR, "Error Using LDAP connection: ldap_search_s");
             ldap_unbind(ldapHandle);
@@ -116,8 +113,7 @@ extern "C" {
         entryCount = ldap_count_entries(ldapHandle, searchResult);
         if (entryCount == 0) {
 
-            if (searchResult != NULL)
-                ldap_msgfree(searchResult);
+            if (searchResult != NULL) ldap_msgfree(searchResult);
 
             BeaconPrintf(CALLBACK_ERROR, "0 results found from LDAP");
             return false;
@@ -126,8 +122,7 @@ extern "C" {
         firstEntry = ldap_first_entry(ldapHandle, searchResult);
         if (firstEntry == NULL) {
 
-            if (searchResult != NULL)
-                ldap_msgfree(searchResult);
+            if (searchResult != NULL) ldap_msgfree(searchResult);
 
             BeaconPrintf(CALLBACK_ERROR, "Error ldap_first_entry");
             ldap_unbind(ldapHandle);
@@ -138,8 +133,7 @@ extern "C" {
         
         if (outval == NULL) {
 
-            if (searchResult != NULL)
-                ldap_msgfree(searchResult);
+            if (searchResult != NULL) ldap_msgfree(searchResult);
 
             //TODO: ChatGPT Safety note  
             // ldap_msgfree is only for LDAPMessage* chains like searchResult. firstEntry is just a pointer inside that chain. Do not free it separately.
@@ -154,8 +148,7 @@ extern "C" {
         outval1 = ldap_get_values_lenA(ldapHandle, firstEntry, attr[1]);
         if (outval1 == NULL) {
 
-            if (searchResult != NULL)
-                ldap_msgfree(searchResult);
+            if (searchResult != NULL) ldap_msgfree(searchResult);
             
             //TODO: ChatGPT Safety note
             //Problem: ldap_msgfree is only for LDAPMessage* chains like searchResult. firstEntry is just a pointer inside that chain. Do not free it separately.
@@ -321,7 +314,6 @@ extern "C" {
 
         ntacct = (WCHAR*)malloc(256 * sizeof(WCHAR));
         _swprintf((WCHAR*) ntacct, L" %ls\\%ls\n", domain, name);
-        // Clean up
         LocalFree(pSid);
 
         return (WCHAR*)ntacct;
