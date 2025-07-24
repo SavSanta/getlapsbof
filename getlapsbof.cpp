@@ -542,14 +542,14 @@ extern "C" {
 
         if (strcmp("ENTRA", lapsmode) == 0) {
 
-            BeaconPrintf(CALLBACK_OUTPUT, "AZURE AD MODE"); 
+            //AZURE ON-PREM MODE   
             authtoken = BeaconDataExtract(&parser, NULL);
             device_id = BeaconDataExtract(&parser, &stringSize);
             doLAPSEntra(authtoken, device_id);
         }
         else if (strcmp("LAPS", lapsmode) == 0 ) {
 
-            BeaconPrintf(CALLBACK_OUTPUT, "ON-PREM AD MODE");     
+            //AD ON-PREM MODE     
             domainController = BeaconDataExtract(&parser, NULL);
             rootDN = BeaconDataExtract(&parser, NULL);
             distinguishedName = BeaconDataExtract(&parser, &stringSize);
@@ -577,7 +577,7 @@ extern "C" {
         }
         else {
 
-                BeaconPrintf(CALLBACK_ERROR, "UNKNOWN MODE"); 
+                BeaconPrintf(CALLBACK_ERROR, "UNKNOWN AD MODE"); 
                 return;
         }
 
