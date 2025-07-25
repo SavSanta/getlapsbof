@@ -575,8 +575,8 @@ extern "C" {
             }
         }
         else {
-
-                BeaconPrintf(CALLBACK_ERROR, "UNKNOWN AD MODE"); 
+                // Sohuld not be reachable because of the CS CNA script checks.
+                BeaconPrintf(CALLBACK_ERROR, "BOF_EXEC_ERROR: UNKNOWN AD MODE"); 
                 return;
         }
 
