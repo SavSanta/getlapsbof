@@ -541,7 +541,7 @@ extern "C" {
 
         if (strcmp("AZLAPS", lapsmode) == 0) {
 
-            //AZURE ON-PREM MODE   
+            //AZURE (aka ENTRA) AD MODE   
             authtoken = BeaconDataExtract(&parser, NULL);
             device_id = BeaconDataExtract(&parser, &stringSize);
             doLAPSEntra(authtoken, device_id);
