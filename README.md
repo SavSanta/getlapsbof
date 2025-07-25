@@ -1,19 +1,35 @@
 # getlapsbof
 
-Beacon Object File (BOF) to retrieve and decrypt LAPSv2 passwords.
+Beacon Object File (BOF) to retrieve and decrypt the the LAPSV2 password from the Windows Active Directory and Microsoft Azure/Entra Active Directory.
 
-## Usage:
-Syntax: `getlapsbof <TARGET_DC> <BASE_DN> <TARGET_COMPUTER_DN>`
+## Syntax:
+Microsoft Active Directory 
+getlapsbof ADLAPS <TARGET_DC> <BASE_DN> <TARGET_COMPUTER_DN>
 
-Example: `getlapsbof sandstone.camp DC=sandstone,DC=camp CN=edworkbox1,OU=LAPSManaged,DC=sandstone,DC=camp`
+    getlapsbof ADLAPS 192.168.230.150 DC=sandstone,DC=camp CN=edworkbox1,OU=LAPSManaged,DC=sandstone,DC=camp
+    getlapsbof ADLAPS sandstone.camp DC=sandstone,DC=camp CN=edworkbox1,OU=LAPSManaged,DC=sandstone,DC=camp
+    getlapsbof ADLAPS DC01.LAB.LOCAL DC=LAB,DC=LOCAL CN=COMPUTERACC,OU=LAPSENABLED,DC=LAB,DC=LOCAL
 
+Microsoft Azure/Entra AD
+getlapsbof AZLAPS <AUTH_TOKEN> <TARGET_DEVICE_ID>
+
+    getlapsbof AZLAPS eyBmke6y73223r.5g54dscv.JKO.340<snipped> 727a4b0435-b1a1-4788-9f04-7215c5ec8ee1
+    getlapsbof AZLAPS My_Secret_PazzWorD_fOr_tHe_AzUR3 F540115-21d1-f777-1cc3-1265c4556c5dd2
 
 #### Requirements:
-- LDAP Connectivity.
 - Account with adequate privileges to read the password.
+- LDAP Connectivity for On-Prem AD.
+- Internet Connectivity if using Azure/Entra mode.
+- Authentication Token for Azure/Entra. The Authentication token can be client_secret or the PRT token via ([entra_auth_flow](https://github.com/sudonoodle/BOF-entra-authcode-flow) or [get_azure_token](https://github.com/trustedsec/CS-Remote-OPs-BOF/blob/main/src/Remote/get_azure_token/entry.c)
+
 
 #### Caveats:
 - LAPSv1 (aka Legacy LAPS) not currently supported. LAPSv1 password is already NOT encrypted. 
+- Password from Azure/Entra are still base64-encoded.
+
+### TODO
+- Incorpporate JSON Beautifier
+- Test and Support Azure/Entra Certificates.
 
 #### Screenshots
 ![Image01](scrn/image01.jpg)
@@ -21,6 +37,8 @@ Example: `getlapsbof sandstone.camp DC=sandstone,DC=camp CN=edworkbox1,OU=LAPSMa
 ##### Credits
 - jborean93 (DPAPI-NG)
 - xpn (Adam Chester)
+- sudonoodle (@infosecnoodle)
 - DSInternals (Michael Grafnetter)
 - Impacket (Fortra/HelpSystems)
 - MSDN
+- My brain and tenacity
