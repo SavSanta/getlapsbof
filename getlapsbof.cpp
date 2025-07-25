@@ -539,14 +539,14 @@ extern "C" {
         lapsmode = BeaconDataExtract(&parser, NULL);
 
 
-        if (strcmp("AZURE", lapsmode) == 0) {
+        if (strcmp("AZLAPS", lapsmode) == 0) {
 
             //AZURE ON-PREM MODE   
             authtoken = BeaconDataExtract(&parser, NULL);
             device_id = BeaconDataExtract(&parser, &stringSize);
             doLAPSEntra(authtoken, device_id);
         }
-        else if (strcmp("LAPS", lapsmode) == 0 ) {
+        else if (strcmp("ADLAPS", lapsmode) == 0 ) {
 
             //AD ON-PREM MODE     
             domainController = BeaconDataExtract(&parser, NULL);
