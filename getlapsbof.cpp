@@ -539,7 +539,7 @@ extern "C" {
         lapsmode = BeaconDataExtract(&parser, NULL);
 
 
-        if (strcmp("ENTRA", lapsmode) == 0) {
+        if (strcmp("AZURE", lapsmode) == 0) {
 
             //AZURE ON-PREM MODE   
             authtoken = BeaconDataExtract(&parser, NULL);
