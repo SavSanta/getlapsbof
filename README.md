@@ -3,14 +3,14 @@
 Beacon Object File (BOF) to retrieve and decrypt the the LAPSV2 password from the Windows Active Directory and Microsoft Azure/Entra Active Directory.
 
 ## Syntax:
-Microsoft Active Directory 
+Microsoft On-Prem Active Directory   
 getlapsbof ADLAPS <TARGET_DC> <BASE_DN> <TARGET_COMPUTER_DN>
 
     getlapsbof ADLAPS 192.168.230.150 DC=sandstone,DC=camp CN=edworkbox1,OU=LAPSManaged,DC=sandstone,DC=camp
     getlapsbof ADLAPS sandstone.camp DC=sandstone,DC=camp CN=edworkbox1,OU=LAPSManaged,DC=sandstone,DC=camp
     getlapsbof ADLAPS DC01.LAB.LOCAL DC=LAB,DC=LOCAL CN=COMPUTERACC,OU=LAPSENABLED,DC=LAB,DC=LOCAL
 
-Microsoft Azure/Entra AD
+Microsoft Azure/Entra AD  
 getlapsbof AZLAPS <AUTH_TOKEN> <TARGET_DEVICE_ID>
 
     getlapsbof AZLAPS eyBmke6y73223r.5g54dscv.JKO.340<snipped> 727a4b0435-b1a1-4788-9f04-7215c5ec8ee1
