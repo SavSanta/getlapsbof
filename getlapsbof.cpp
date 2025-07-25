@@ -77,7 +77,6 @@ extern "C" {
         DFR_LOCAL(wldap32, ldap_count_entries);
         DFR_LOCAL(wldap32, ldap_first_entry);
         DFR_LOCAL(wldap32, ldap_get_values_lenA);
-        DFR_LOCAL(wldap32, ldap_get_values);
         DFR_LOCAL(wldap32, ldap_msgfree);
 
         LDAP *ldapHandle;
