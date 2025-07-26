@@ -16,7 +16,7 @@ _getlapsbof AZLAPS <AUTH_TOKEN> <TARGET_DEVICE_ID>_
     getlapsbof AZLAPS eyBmke6y73223r.5g54dscv.JKO.340<snipped> 727a4b0435-b1a1-4788-9f04-7215c5ec8ee1
     getlapsbof AZLAPS My_Secret_PazzWorD_fOr_tHe_AzUR3 F540115-21d1-f777-1cc3-1265c4556c5dd2
 
-Note: The AUTH_TOKEN can be pretty large. To save on constant copy+pasting. The operator can define in Cobalt Strike's CredentialManager a username as `_getlapsbof_aztoken` and set the password to the auth token's value. Then the operator can pass in `""` for the <AUTH_TOKEN> parameter and the the script will search and substitute it from the value in the Cobalt Strike Credential manager.
+Note: As auth tokens an be pretty long. To save on constant copy+pasting. The operator can add in Cobalt Strike's Credential Manager a username of `_getlapsbof_aztoken` and set the password to the auth token's value. Then the operator can pass in `""` for the <AUTH_TOKEN> parameter and the script will substitute in the value in the Cobalt Strike Credential manager.
 ![Image02](scrn/image03.jpg) 
 
 
