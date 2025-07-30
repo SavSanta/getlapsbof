@@ -24,7 +24,7 @@ Note: As auth tokens an be pretty long. To save on constant copy+pasting. The op
 - Account with adequate privileges to read the password.
 - LDAP Connectivity for On-Prem AD.
 - Internet Connectivity if using Azure/Entra mode.
-- Authentication Token for Azure/Entra. The Authentication token can be client_secret or the PRT token via ([entra_auth_flow](https://github.com/sudonoodle/BOF-entra-authcode-flow) or [get_azure_token](https://github.com/trustedsec/CS-Remote-OPs-BOF/blob/main/src/Remote/get_azure_token/entry.c)
+- Authentication Token if using Azure/Entra. The Authentication token can be client_secret or the PRT token via ([entra_auth_flow](https://github.com/sudonoodle/BOF-entra-authcode-flow) or [get_azure_token](https://github.com/trustedsec/CS-Remote-OPs-BOF/blob/main/src/Remote/get_azure_token/entry.c))
 
 
 #### Caveats:
@@ -46,4 +46,4 @@ Note: As auth tokens an be pretty long. To save on constant copy+pasting. The op
 - DSInternals (Michael Grafnetter)
 - Impacket (Fortra/HelpSystems)
 - MSDN
-- My brain and tenacity
+- Brain's tenacity
