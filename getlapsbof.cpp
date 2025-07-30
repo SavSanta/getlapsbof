@@ -264,7 +264,7 @@ extern "C" {
         }
 
         if (copyLen >= 256) {
-            // Larger than normal bounds. Inform user and proceed to minimize bound it.
+            // Larger than normal bounds per MSDN. Inform user we're truncating bounds.
             BeaconPrintf(CALLBACK_ERROR, "RemoveSIDPrefix maximum buf exceeded. Results may will truncate/error.\n");
             copyLen = 255;
             return buf;
@@ -444,6 +444,7 @@ extern "C" {
         }
 
         // Open session
+        // Might wanna adjust User-Agent and compile.
         HINTERNET hSession = WinHttpOpen(L"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36", 
             WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, 
             NULL, 
@@ -575,7 +576,7 @@ extern "C" {
             }
         }
         else {
-                // Sohuld not be reachable because of the CS CNA script checks.
+                // Should not be reachable due to CS CNA script checks.
                 BeaconPrintf(CALLBACK_ERROR, "BOF_EXEC_ERROR: UNKNOWN AD MODE"); 
                 return;
         }
