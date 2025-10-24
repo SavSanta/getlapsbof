@@ -249,7 +249,6 @@ extern "C" {
 
     WCHAR* RemoveSIDPrefix(WCHAR* ss) {
         
-        
         DFR_LOCAL(KERNEL32, LocalFree);
 
         static WCHAR buf[256];
@@ -265,7 +264,7 @@ extern "C" {
 
         if (copyLen >= 256) {
             // Larger than normal bounds per MSDN. Inform user we're truncating bounds.
-            BeaconPrintf(CALLBACK_ERROR, "RemoveSIDPrefix maximum buf exceeded. Results may will truncate/error.\n");
+            BeaconPrintf(CALLBACK_ERROR, "RemoveSIDPrefix maximum buf exceeded. Results may/will truncate/error.\n");
             copyLen = 255;
             return buf;
         }
@@ -295,7 +294,7 @@ extern "C" {
         DFR_LOCAL(ADVAPI32, ConvertStringSidToSidW);
         DFR_LOCAL(ADVAPI32, LookupAccountSidW);
         
-        // We are presuming the SID is a single SID. This may fail on multiple accounts allowed to decrypt returned as a list?
+        // TODO-Maybe: We are presuming the SID is a single SID. This may fail on multiple accounts allowed to decrypt returned as a list?
 
 
         // Convert SID string to SID structure
@@ -453,7 +452,6 @@ extern "C" {
 
         if (!hSession) {
             BeaconPrintf(CALLBACK_ERROR, "WinHttpOpen failed: %u\n", GetLastError());
-            //BeaconPrintf(CALLBACK_ERROR, "WinHttpOpen failed.\n");
             return;
         }
 
@@ -461,7 +459,6 @@ extern "C" {
         HINTERNET hConnect = WinHttpConnect(hSession, L"graph.microsoft.com", INTERNET_DEFAULT_HTTPS_PORT, 0);
         if (!hConnect) {
             BeaconPrintf(CALLBACK_ERROR, "WinHttpConnect failed: %u\n", GetLastError());
-            //BeaconPrintf(CALLBACK_ERROR, "WinHttpConnect failed.");
             WinHttpCloseHandle(hSession);
             return;
         }
@@ -472,7 +469,6 @@ extern "C" {
         if (!hRequest) {
 
             BeaconPrintf(CALLBACK_ERROR, "WinHttpOpenRequest failed: %u\n", GetLastError());
-            //BeaconPrintf(CALLBACK_ERROR, "WinHttpOpenRequest failed.");
             WinHttpCloseHandle(hConnect);
             WinHttpCloseHandle(hSession);
             return;
@@ -487,13 +483,11 @@ extern "C" {
         if (!WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, 
             WINHTTP_NO_REQUEST_DATA, 0, 0, 0)) {
             BeaconPrintf(CALLBACK_ERROR, "WinHttpSendRequest failed: %u\n", GetLastError());
-            //BeaconPrintf(CALLBACK_ERROR, "WinHttpSendRequest failed.");
         }
 
         // Receive response
         if (!WinHttpReceiveResponse(hRequest, NULL)) {
             BeaconPrintf(CALLBACK_ERROR, "WinHttpReceiveResponse failed: %u\n", GetLastError());
-            //BeaconPrintf(CALLBACK_ERROR, "WinHttpReceiveResponse failed.");
         }
 
         // Read response chunks
@@ -576,13 +570,11 @@ extern "C" {
             }
         }
         else {
-                // Should not be reachable due to CS CNA script checks.
-                BeaconPrintf(CALLBACK_ERROR, "BOF_EXEC_ERROR: UNKNOWN AD MODE"); 
+                // Should not be reachable in CS due to CNA validation checks. Other C2s tho...?
+                BeaconPrintf(CALLBACK_ERROR, "BOF_EXEC_ERROR: UNKNOWN LAPS MODE"); 
                 return;
         }
 
-
-        
     }
 }
 #
